@@ -1,14 +1,22 @@
-version: "3.9"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Voting App — Full Stack docker-compose
-# Services: vote | worker | result | redis | db
-# ─────────────────────────────────────────────────────────────────────────────
+version: '3.9'
 
 services:
-
-  # ── 1. Vote Service ────────────────────────────────────────────────────────
-  vote:
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: votes
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    
+  vote-service:
     build:
       context: ./vote-service
       dockerfile: Dockerfile
@@ -20,47 +28,23 @@ services:
       OPTION_A: Cats
       OPTION_B: Dogs
     depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - frontend
-      - backend
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 128M
+      - redis
 
-  # ── 2. Result Service ──────────────────────────────────────────────────────
-  result:
+  result-service:
     build:
       context: ./result-service
       dockerfile: Dockerfile
     ports:
-      - "4000:4000"
+      - "5001:"
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: votes
       DB_USER: postgres
       DB_PASSWORD: postgres
-      POLL_INTERVAL: 1000
+      DB_NAME: votes
     depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - frontend
-      - backend
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 128M
-
-  # ── 3. Worker Service ──────────────────────────────────────────────────────
-  worker:
+      - db
+  worker-service:
     build:
       context: ./worker-service
       dockerfile: Dockerfile
@@ -69,85 +53,18 @@ services:
       REDIS_PORT: 6379
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: votes
       DB_USER: postgres
       DB_PASSWORD: postgres
+      DB_NAME: votes
     depends_on:
-      redis:
-        condition: service_healthy
-      db:
-        condition: service_healthy
-    networks:
-      - backend
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 128M
+      - redis
+      - db
 
-  # ── 4. Redis Service ───────────────────────────────────────────────────────
-  redis:
-    build:
-      context: ./redis-service
-      dockerfile: Dockerfile
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:latest
     ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - backend
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.3"
-          memory: 256M
-
-  # ── 5. DB Service ──────────────────────────────────────────────────────────
-  db:
-    build:
-      context: ./db-service
-      dockerfile: Dockerfile
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: votes
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    networks:
-      - backend
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d votes"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 512M
-
-# ── Networks ──────────────────────────────────────────────────────────────────
-networks:
-  frontend:
-    driver: bridge
-  backend:
-    driver: bridge
-
-# ── Volumes ───────────────────────────────────────────────────────────────────
+      - "8978:8978"
+    depends_on:
+      - db
 volumes:
-  redis-data:
-    driver: local
-  db-data:
-    driver: local
+  db_data:

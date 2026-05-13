@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
 LABEL maintainer="devops-practice"
 LABEL service="vote-service"
@@ -9,8 +9,17 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
+# Copy app code into the builder image
 COPY . .
+
+
+FROM python:3.11-slim AS runtime
+
+WORKDIR /app
+
+# Copy installed dependencies and application code from the builder stage
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /app /app
 
 # Non-root user for security
 RUN adduser --disabled-password --gecos '' appuser
