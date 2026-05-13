@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Vote Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 2.2rem; margin-bottom: 0.4rem; }
+    .subtitle { color: #8b949e; margin-bottom: 3rem; }
+    .results { width: 100%; max-width: 560px; }
+    .option { margin-bottom: 2rem; }
+    .option-header { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 1.1rem; }
+    .option-name { font-weight: bold; }
+    .option-pct { color: #58a6ff; font-weight: bold; }
+    .bar-bg { background: #21262d; border-radius: 8px; height: 28px; overflow: hidden; }
+    .bar-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 0.6s ease;
+      min-width: 4px;
+    }
+    .bar-a { background: linear-gradient(90deg, #1f6feb, #58a6ff); }
+    .bar-b { background: linear-gradient(90deg, #b94c0a, #f0883e); }
+    .total {
+      margin-top: 2.5rem;
+      text-align: center;
+      color: #8b949e;
+      font-size: 1rem;
+    }
+    .total span { color: #e6edf3; font-weight: bold; font-size: 1.4rem; }
+    .live-dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #3fb950;
+      margin-right: 6px;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .live { color: #3fb950; font-size: 0.85rem; margin-top: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>📊 Live Results</h1>
+  <p class="subtitle">Vote tallies update in real time</p>
+
+  <div class="results">
+    <div class="option">
+      <div class="option-header">
+        <span class="option-name">🐱 Cats</span>
+        <span class="option-pct" id="pct-a">–</span>
+      </div>
+      <div class="bar-bg">
+        <div class="bar-fill bar-a" id="bar-a" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="option">
+      <div class="option-header">
+        <span class="option-name">🐶 Dogs</span>
+        <span class="option-pct" id="pct-b">–</span>
+      </div>
+      <div class="bar-bg">
+        <div class="bar-fill bar-b" id="bar-b" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="total">
+      Total votes: <span id="total">0</span>
+    </div>
+    <p class="live"><span class="live-dot"></span>Live via WebSocket</p>
+  </div>
+
+  <script>
+    const socket = io();
+    socket.on('scores', (data) => {
+      document.getElementById('pct-a').textContent = data.pct_a + '%';
+      document.getElementById('pct-b').textContent = data.pct_b + '%';
+      document.getElementById('bar-a').style.width = data.pct_a + '%';
+      document.getElementById('bar-b').style.width = data.pct_b + '%';
+      document.getElementById('total').textContent = data.total;
+    });
+  </script>
+</body>
+</html>

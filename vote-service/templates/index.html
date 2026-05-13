@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vote: {{ option_a }} vs {{ option_b }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; text-align: center; }
+    .subtitle { color: #aaa; margin-bottom: 3rem; text-align: center; }
+    .choices { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; }
+    .choice {
+      background: #16213e;
+      border: 3px solid #0f3460;
+      border-radius: 16px;
+      padding: 3rem 4rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1.5rem;
+      font-weight: bold;
+      min-width: 180px;
+      text-align: center;
+    }
+    .choice:hover { border-color: #e94560; transform: translateY(-4px); background: #0f3460; }
+    .choice.selected { border-color: #e94560; background: #e94560; color: white; }
+    .vote-btn {
+      margin-top: 2.5rem;
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 1rem 3rem;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .vote-btn:hover { opacity: 0.85; }
+    .hostname { margin-top: 3rem; color: #555; font-size: 0.85rem; }
+    .voted { color: #4caf50; font-size: 1.1rem; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>🗳️ Cast Your Vote</h1>
+  <p class="subtitle">Pick your favorite and submit!</p>
+
+  <form action="/" method="POST" id="voteForm">
+    <div class="choices">
+      <div class="choice {% if vote == 'a' %}selected{% endif %}" onclick="selectVote('a')">
+        {{ option_a }}
+      </div>
+      <div class="choice {% if vote == 'b' %}selected{% endif %}" onclick="selectVote('b')">
+        {{ option_b }}
+      </div>
+    </div>
+    <input type="hidden" name="vote" id="voteInput" value="{{ vote or '' }}">
+    <div style="text-align:center">
+      <button type="submit" class="vote-btn">Submit Vote</button>
+    </div>
+    {% if vote %}
+    <p class="voted" style="text-align:center">✅ You voted for <strong>{{ option_a if vote == 'a' else option_b }}</strong>!</p>
+    {% endif %}
+  </form>
+
+  <p class="hostname">Served by: {{ hostname }}</p>
+
+  <script>
+    function selectVote(val) {
+      document.getElementById('voteInput').value = val;
+      document.querySelectorAll('.choice').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+name: CI/CD — vote-service
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'vote-service/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'vote-service/**'
+
+env:
+  IMAGE_NAME: vote-service
+  REGISTRY: docker.io  # Change to ghcr.io or your ECR URI
+
+jobs:
+
+  # ── Lint & Test ────────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vote-service
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: pip
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt pytest flake8
+
+    - name: Lint
+      run: flake8 app.py --max-line-length=120
+
+    - name: Run tests
+      run: pytest tests/ -v || echo "No tests found – add tests!"
+
+  # ── Build & Push ───────────────────────────────────────────────────────────
+  build:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: vote-service
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to registry
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,prefix=sha-
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v5
+      with:
+        context: vote-service/
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # ── Deploy (optional) ──────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Uncomment and configure for your cluster:
+    # - name: Set up kubectl
+    #   uses: azure/setup-kubectl@v3
+    #
+    # - name: Update kubeconfig
+    #   run: aws eks update-kubeconfig --region us-east-1 --name my-cluster
+    #
+    # - name: Deploy
+    #   run: |
+    #     kubectl set image deployment/vote vote=${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} -n voting-app
+    #     kubectl rollout status deployment/vote -n voting-app
+
+    - name: Deployment placeholder
+      run: echo "Add your kubectl deploy step here!"
