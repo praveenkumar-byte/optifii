@@ -2,7 +2,7 @@ name: CI/CD — vote-service
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'vote-service/**'
   pull_request:

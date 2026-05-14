@@ -1,70 +1,41 @@
-version: '3.9'
-
 services:
   redis:
-    image: redis:7.2-alpine
+    build:
+      context: ./redis-service
+      dockerfile: Dockerfile
     ports:
       - "6379:6379"
+   
   db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: votes
+    build: 
+      context: ./db-service
+      dockerfile: Dockerfile
     ports:
       - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    
+
   vote-service:
     build:
       context: ./vote-service
       dockerfile: Dockerfile
     ports:
       - "5000:5000"
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      OPTION_A: Cats
-      OPTION_B: Dogs
     depends_on:
       - redis
-
+  
+  worker-service:
+    build:
+      context: ./worker-service
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+      - db
   result-service:
     build:
       context: ./result-service
       dockerfile: Dockerfile
     ports:
-      - "5001:"
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: votes
-    depends_on:
-      - db
-  worker-service:
-    build:
-      context: ./worker-service
-      dockerfile: Dockerfile
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: votes
-    depends_on:
-      - redis
-      - db
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver:latest
-    ports:
-      - "8978:8978"
+      - "5001:4000"
     depends_on:
       - db
 volumes:
-  db_data:
+  postgres_data:
